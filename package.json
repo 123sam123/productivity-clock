@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test": "node --test 'src/**/*.test.ts'",
     "verify": "node scripts/verify-timer.mjs"
   },
   "dependencies": {

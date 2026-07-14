@@ -31,6 +31,18 @@
   aspect-ratio: 1;
 }
 
+/* Break phases read cooler than focus, so a glance tells you which one you're in. */
+.phase-shortBreak,
+.phase-longBreak {
+  --accent: #7db8d3;
+  --accent-hover: #96cae2;
+}
+
+/* A paused clock should look stopped, not merely still. */
+.clock-face[data-status='paused'] .clock-time {
+  opacity: 0.55;
+}
+
 .clock-face svg {
   width: 100%;
   height: 100%;
@@ -111,6 +123,145 @@
 .btn-ghost:hover {
   border-color: var(--muted);
   color: var(--fg);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem 0.6rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-size: 0.85rem;
+}
+
+.banner-dismiss {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.15rem;
+}
+
+.banner-dismiss:hover {
+  color: var(--fg);
+}
+
+.cycle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: -0.75rem;
+}
+
+.pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--track);
+}
+
+.pip-done {
+  background: var(--accent);
+}
+
+.cycle-count {
+  margin-left: 0.35rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--track);
+  width: min(440px, 100%);
+}
+
+.presets {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.chip {
+  border-radius: 999px;
+  border: 1px solid var(--track);
+  background: transparent;
+  color: var(--muted);
+  padding: 0.3rem 0.8rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--muted);
+  color: var(--fg);
+}
+
+.chip-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem 1rem;
+  width: 100%;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.field > span:first-child {
+  flex: 1;
+}
+
+.field input {
+  width: 3.6rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--track);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.unit {
+  width: 4.5rem;
+}
+
+.settings-note {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
 }
 
 .app-footer {
