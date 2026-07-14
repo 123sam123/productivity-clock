@@ -9,7 +9,9 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "node --test 'src/**/*.test.ts'",
-    "verify": "node scripts/verify-timer.mjs"
+    "verify": "npm run verify:timer && npm run verify:sessions",
+    "verify:timer": "node scripts/verify-timer.mjs",
+    "verify:sessions": "node scripts/verify-sessions.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

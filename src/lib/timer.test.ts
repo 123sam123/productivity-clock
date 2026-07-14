@@ -69,7 +69,7 @@ test('a phase that ended while we were away completes at its deadline, not on ou
   const running = start(createTimer(), T0)
 
   // Lid shut at minute 2, reopened three hours later.
-  const { state, completion } = runToEnd(running, T0 + 3 * 60 * MINUTE_MS)
+  const { state, ended: completion } = runToEnd(running, T0 + 3 * 60 * MINUTE_MS)
 
   assert.ok(completion, 'the focus block should have completed')
   assert.equal(completion.phase, 'focus')
@@ -92,20 +92,20 @@ test('sleeping through the afternoon does not chain-complete phases you never di
 
   const first = settle(state, wake)
   state = first.state
-  assert.equal(first.completion?.phase, 'focus')
+  assert.equal(first.ended?.phase, 'focus')
   assert.equal(state.focusCount, 1, 'exactly one focus block was actually worked')
 
   // Settling again changes nothing: the next phase is idle, so there is no
   // second deadline in the past to trip over.
   const second = settle(state, wake)
-  assert.equal(second.completion, null)
+  assert.equal(second.ended, null)
   assert.equal(second.state, state)
   assert.equal(second.state.focusCount, 1)
 })
 
 test('settling repeatedly mid-phase is a no-op', () => {
   const running = start(createTimer(), T0)
-  const { state, completion } = settle(running, T0 + MINUTE_MS)
+  const { state, ended: completion } = settle(running, T0 + MINUTE_MS)
   assert.equal(completion, null)
   assert.equal(state, running, 'identity preserved, so React does not re-render')
 })
@@ -138,7 +138,7 @@ test('the long break lands on every 4th completed focus block', () => {
 
 test('skipping a focus block does not count it as work', () => {
   const running = start(createTimer(), T0)
-  const skipped = skip(running)
+  const skipped = skip(running, T0 + 10 * MINUTE_MS).state
 
   assert.equal(skipped.phase, 'shortBreak')
   assert.equal(skipped.status, 'idle')
@@ -146,14 +146,14 @@ test('skipping a focus block does not count it as work', () => {
   assert.equal(skipped.startedAt, null)
 
   // Which means a skipped block cannot drag the long break forward either.
-  assert.equal(skip(skipped).phase, 'focus')
+  assert.equal(skip(skipped, T0).state.phase, 'focus')
 })
 
 test('reset restarts the phase without discarding completed cycles', () => {
   let state = start(createTimer(), T0)
   state = settle(state, T0 + FOCUS).state // one focus done
   state = start(state, T0 + FOCUS) // start the break
-  state = reset(state)
+  state = reset(state, T0 + FOCUS).state
 
   assert.equal(state.status, 'idle')
   assert.equal(state.phase, 'shortBreak')
@@ -201,7 +201,7 @@ test('a running timer survives a serialize/deserialize round trip', () => {
 test('a phase that ended while the page was closed settles on load', () => {
   const running = start(createTimer(), T0)
   const restored = deserializeTimer(serializeTimer(running))
-  const { state, completion } = settle(restored, T0 + 40 * MINUTE_MS)
+  const { state, ended: completion } = settle(restored, T0 + 40 * MINUTE_MS)
 
   assert.equal(completion?.endedAt, T0 + FOCUS)
   assert.equal(state.phase, 'shortBreak')
@@ -220,10 +220,20 @@ test('corrupt or hostile storage degrades to a fresh timer, never to NaN', () =>
   assert.equal(parseTimerState({ status: 'running', phase: 'focus', targetAt: null }), null)
   assert.equal(parseTimerState({ status: 'nonsense', phase: 'focus' }), null)
 
+  // A phase that is running or paused HAS run, so it must know when it began —
+  // otherwise the session it eventually writes to history would carry an
+  // invented start time, and a lie in the record is worse than a missing row.
+  assert.equal(
+    parseTimerState({ status: 'running', phase: 'focus', targetAt: T0 + FOCUS, startedAt: null }),
+    null,
+  )
+  assert.equal(parseTimerState({ status: 'paused', phase: 'focus', remainingMs: 1000 }), null)
+
   // NaN/Infinity anywhere must not reach the render path.
   const poisoned = parseTimerState({
     status: 'paused',
     phase: 'focus',
+    startedAt: T0,
     remainingMs: Number.NaN,
     phaseTotalMs: Number.POSITIVE_INFINITY,
     focusCount: -5,

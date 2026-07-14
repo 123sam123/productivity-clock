@@ -69,6 +69,13 @@ export function parseTimerState(raw: unknown): TimerState | null {
   const targetAt = isFinite_(s.targetAt) ? s.targetAt : null
   if (status === 'running' && targetAt === null) return null
 
+  // Likewise, a phase that is running or paused *has run*, so it must know when
+  // it began. Without that we could not honestly date the session it will end
+  // up writing to history, and a session with an invented start time is worse
+  // than no session. Reject rather than guess.
+  const startedAt = isFinite_(s.startedAt) ? s.startedAt : null
+  if (status !== 'idle' && startedAt === null) return null
+
   const phaseTotalMs = isPositive(s.phaseTotalMs) ? s.phaseTotalMs : durationFor(phase, config)
   const remainingMs =
     isFinite_(s.remainingMs) && s.remainingMs >= 0
@@ -81,7 +88,7 @@ export function parseTimerState(raw: unknown): TimerState | null {
     phaseTotalMs,
     targetAt,
     remainingMs,
-    startedAt: isFinite_(s.startedAt) ? s.startedAt : null,
+    startedAt,
     focusCount: isFinite_(s.focusCount) && s.focusCount >= 0 ? Math.floor(s.focusCount) : 0,
     config,
   }

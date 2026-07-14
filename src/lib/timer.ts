@@ -47,12 +47,29 @@ export type TimerState = {
   config: TimerConfig
 }
 
-/** A phase that ran to zero. Emitted so sessions/history can record it later. */
-export type Completion = {
+/** A focus block either runs to zero, or you walk away from it. Nothing else. */
+export type Outcome = 'completed' | 'abandoned'
+
+/**
+ * A phase that ended, and the whole truth about it. This is the engine's only
+ * output to history — sessions are built from these and nothing else.
+ *
+ * `startedAt` is non-null by construction: a phase that never ran cannot end,
+ * so hitting Reset on an untouched clock emits nothing at all.
+ */
+export type PhaseEnd = {
   phase: Phase
+  outcome: Outcome
+  /** The phase length it set out to do. */
   plannedMs: number
-  startedAt: number | null
-  /** The instant the phase *actually* hit zero — not the instant we noticed. */
+  /**
+   * Time the clock was actually *running*. Excludes time spent paused, so a
+   * 25-minute block you paused for an hour in the middle of is 25 minutes of
+   * focus, not 85. For a completed phase this is exactly `plannedMs`.
+   */
+  elapsedMs: number
+  startedAt: number
+  /** The instant the phase *actually* ended — not the instant we noticed. */
   endedAt: number
 }
 
@@ -157,22 +174,52 @@ export function pause(state: TimerState, now: number): TimerState {
   }
 }
 
-/** Restart the current phase from full, without touching the cycle count. */
-export function reset(state: TimerState): TimerState {
-  return enterPhase(state, state.phase)
+/**
+ * Describe the phase that is ending. Null when there is nothing to describe:
+ * `startedAt` is only set once a phase has actually run, so an untouched clock
+ * that gets Reset or Skipped ends nothing and writes nothing to history.
+ *
+ * Time already spent is `phaseTotalMs - remaining`, which is exactly the right
+ * number in every case: pauses never moved the deadline, so they never inflate
+ * it, and a completed phase has zero remaining and therefore banked its full
+ * length.
+ */
+function endOf(state: TimerState, endedAt: number, outcome: Outcome): PhaseEnd | null {
+  if (state.startedAt === null) return null
+  return {
+    phase: state.phase,
+    outcome,
+    plannedMs: state.phaseTotalMs,
+    elapsedMs: state.phaseTotalMs - remainingAt(state, endedAt),
+    startedAt: state.startedAt,
+    endedAt,
+  }
+}
+
+/** A transition that can end the current phase, and the end it produced (if any). */
+export type Transition = { state: TimerState; ended: PhaseEnd | null }
+
+/**
+ * Restart the current phase from full, without touching the cycle count.
+ *
+ * Time already served is abandoned, not erased: ten minutes into a pomodoro,
+ * Reset means you gave up on that block, and history should say so.
+ */
+export function reset(state: TimerState, now: number): Transition {
+  return { state: enterPhase(state, state.phase), ended: endOf(state, now, 'abandoned') }
 }
 
 /**
  * Abandon the current phase and move to the next one.
  *
  * A skipped focus block is deliberately NOT counted as completed — you didn't
- * do the work, so it must not advance the long-break cadence or (later) write
- * a session to history.
+ * do the work, so it must not advance the long-break cadence, and it lands in
+ * history as `abandoned`.
  */
-export function skip(state: TimerState): TimerState {
+export function skip(state: TimerState, now: number): Transition {
   const next: Phase =
     state.phase === 'focus' ? breakAfter(state.focusCount + 1, state.config) : 'focus'
-  return enterPhase(state, next)
+  return { state: enterPhase(state, next), ended: endOf(state, now, 'abandoned') }
 }
 
 /**
@@ -180,18 +227,13 @@ export function skip(state: TimerState): TimerState {
  * next one. Split out from settle() so the "what comes next" rule lives in
  * exactly one place.
  */
-function complete(state: TimerState, endedAt: number): { state: TimerState; completion: Completion } {
-  const completion: Completion = {
-    phase: state.phase,
-    plannedMs: state.phaseTotalMs,
-    startedAt: state.startedAt,
-    endedAt,
-  }
+function complete(state: TimerState, endedAt: number): Transition {
+  const ended = endOf(state, endedAt, 'completed')
 
   const focusCount = state.phase === 'focus' ? state.focusCount + 1 : state.focusCount
   const next: Phase = state.phase === 'focus' ? breakAfter(focusCount, state.config) : 'focus'
 
-  return { state: enterPhase({ ...state, focusCount }, next), completion }
+  return { state: enterPhase({ ...state, focusCount }, next), ended }
 }
 
 /**
@@ -208,13 +250,11 @@ function complete(state: TimerState, endedAt: number): { state: TimerState; comp
  * That gives the engine a property worth stating plainly: the outcome does not
  * depend on whether anyone was watching. A 25-minute focus block that ends at
  * 10:25 completes at 10:25, with `endedAt` 10:25 — whether you were staring at
- * the tab, or the lid was shut and you opened it at 13:00.
+ * the tab, or the lid was shut and you opened it at 13:00. The session written
+ * to history says 10:00–10:25 either way.
  */
-export function settle(
-  state: TimerState,
-  now: number,
-): { state: TimerState; completion: Completion | null } {
-  if (!isExpired(state, now)) return { state, completion: null }
+export function settle(state: TimerState, now: number): Transition {
+  if (!isExpired(state, now)) return { state, ended: null }
   // targetAt is non-null whenever isExpired() is true.
   return complete(state, state.targetAt as number)
 }

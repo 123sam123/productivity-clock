@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { ClockFace } from './components/ClockFace'
+import { History } from './components/History'
 import { IntervalSettings } from './components/IntervalSettings'
 import { useTimer } from './hooks/useTimer'
 import { formatDuration, PHASE_LABELS } from './lib/timer.ts'
@@ -8,7 +9,10 @@ import './App.css'
 export default function App() {
   const {
     state,
+    sessions,
+    now,
     remainingMs,
+    focusedToday,
     lastCompleted,
     start,
     pause,
@@ -89,8 +93,10 @@ export default function App() {
 
       <IntervalSettings config={config} onChange={setConfig} locked={!idle} />
 
+      <History sessions={sessions} focusedToday={focusedToday} now={now} />
+
       <footer className="app-footer">
-        <span data-testid="status">{status}</span> · sessions &amp; history next
+        <span data-testid="status">{status}</span> · history is kept on this device only
       </footer>
     </main>
   )

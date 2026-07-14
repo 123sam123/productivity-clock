@@ -268,3 +268,134 @@
   color: var(--muted);
   font-size: 0.75rem;
 }
+
+/* ---------------------------------------------------------------------------
+   History
+   --------------------------------------------------------------------------- */
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--track);
+  width: min(440px, 100%);
+}
+
+.history-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.history-header h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.history-today {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.history-today strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.history-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.history-day + .history-day {
+  margin-top: 0.9rem;
+}
+
+.history-day-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 0.35rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.history-day-total {
+  /* The number you actually came here for. The uppercasing on the day heading is
+     for the label ("TODAY"), not for this — "1H 25M" reads like shouting. */
+  color: var(--fg);
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: auto 3.5rem 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  font-size: 0.8rem;
+  border-top: 1px solid var(--track);
+}
+
+.history-when {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.history-duration {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* An abandoned block is history, not an accusation — state it and move on. */
+.outcome-abandoned .history-duration,
+.outcome-abandoned .history-when {
+  opacity: 0.6;
+}
+
+.history-outcome {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tag {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.tag-done {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.tag-abandoned {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+}
+
+.history-more {
+  margin: 0;
+  padding-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}

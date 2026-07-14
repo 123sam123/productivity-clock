@@ -12,6 +12,18 @@
  */
 import { createTimer, type TimerState } from './timer.ts'
 import { deserializeTimer, serializeTimer, STORAGE_KEY } from './persist.ts'
+import { deserializeSessions, serializeSessions, type Session } from './sessions.ts'
+
+/**
+ * History lives under its own key, not inside the timer blob.
+ *
+ * The timer is a small, hot, overwritten-every-transition scratchpad; history is
+ * an append-only record of work you actually did. Keeping them separate means a
+ * malformed timer blob costs you a countdown you can restart in one click, and
+ * not three weeks of sessions — which is the one thing here that is genuinely
+ * unrecoverable.
+ */
+export const SESSIONS_KEY = 'clock.sessions.v1'
 
 export function loadTimer(): TimerState {
   try {
@@ -26,5 +38,22 @@ export function saveTimer(state: TimerState): void {
     localStorage.setItem(STORAGE_KEY, serializeTimer(state))
   } catch {
     // Storage full, blocked, or unavailable. Nothing to do but keep running.
+  }
+}
+
+export function loadSessions(): Session[] {
+  try {
+    return deserializeSessions(localStorage.getItem(SESSIONS_KEY))
+  } catch {
+    return []
+  }
+}
+
+export function saveSessions(sessions: Session[]): void {
+  try {
+    localStorage.setItem(SESSIONS_KEY, serializeSessions(sessions))
+  } catch {
+    // Quota, private mode, or storage disabled. The in-memory history is still
+    // good for this run; we just cannot promise it will be here tomorrow.
   }
 }
